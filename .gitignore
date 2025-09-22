@@ -1,1 +1,54 @@
-node_modules
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.cover
+.coverage
+htmlcov/
+.dist/
+build/
+dist/
+*.egg-info/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Docker
+*.pid
+
+# Root Node artifacts
+node_modules/
+package-lock.json
+
+# Frontend
+frontend/node_modules/
+frontend/.env
+frontend/.env.*
+frontend/build/
+frontend/package-lock.json
+
+# React/CRA
+**/coverage/
+**/.cache/
+
+# Images generated at runtime
+faceid.db
+
+# Misc
+*.bak
+*.tmp
