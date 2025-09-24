@@ -8,6 +8,8 @@ from ..auth import require_token
 from ..tenant_guard import tenant_context
 from ..face_engine_arcface import engine_arc
 from ..nn import upsert_embedding, search_top1
+import httpx, os
+from ..core.config import settings
 
 router = APIRouter(prefix="/face", tags=["face"])
 
@@ -26,7 +28,21 @@ async def enroll_passport(
     db: Session = Depends(get_db),
 ):
     by = await file.read()
-    emb = engine_arc.embed(by)
+    # If external face engine is configured, proxy to it for encode
+    emb = None
+    face_url = settings.FACE_ENGINE_URL
+    if face_url:
+        try:
+            url = f"{face_url.rstrip('/')}/encode"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(url, content=by)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    emb = np.array(data.get("embedding", []), dtype=np.float32)
+        except Exception:
+            emb = None
+    if emb is None:
+        emb = engine_arc.embed(by)
     if emb is None:
         raise HTTPException(400, "No face detected in passport photo")
 
@@ -51,7 +67,19 @@ async def enroll_live(
     added = 0
     for f in files:
         by = await f.read()
-        emb = engine_arc.embed(by)
+        emb = None
+        if face_url:
+            try:
+                url = f"{face_url.rstrip('/')}/encode"
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(url, content=by)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        emb = np.array(data.get("embedding", []), dtype=np.float32)
+            except Exception:
+                emb = None
+        if emb is None:
+            emb = engine_arc.embed(by)
         if emb is None: 
             continue
         upsert_embedding(db, int(user_id), tenant["branch_id"], emb)
@@ -67,7 +95,20 @@ async def verify_arc(
     db: Session = Depends(get_db),
 ):
     by = await file.read()
-    emb = engine_arc.embed(by)
+    emb = None
+    face_url = settings.FACE_ENGINE_URL
+    if face_url:
+        try:
+            url = f"{face_url.rstrip('/')}/encode"
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(url, content=by)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    emb = np.array(data.get("embedding", []), dtype=np.float32)
+        except Exception:
+            emb = None
+    if emb is None:
+        emb = engine_arc.embed(by)
     if emb is None:
         raise HTTPException(404, "No face detected")
 

@@ -30,5 +30,15 @@ services:
       - ./migrations.sql:/docker-entrypoint-initdb.d/000_migrations.sql:ro
     command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=200"]
 
+  frontend:
+    build: ./frontend
+    container_name: faceid_frontend
+    environment:
+      - VITE_API_URL=http://localhost:${API_PORT}
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
 volumes:
   pgdata:

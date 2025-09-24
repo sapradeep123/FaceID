@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     FACE_MODEL_PATH: str = "models/arcface_r100_v1"
     FACE_THRESHOLD: float = 0.6
     LIVENESS_MODEL_PATH: str = "models/liveness_model"
+    FACE_ENGINE_URL: str = os.getenv("FACE_ENGINE_URL", "http://127.0.0.1:9000")
     
     # Rate Limiting
     RATE_LIMIT_REQUESTS: int = 100
