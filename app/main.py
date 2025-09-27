@@ -6,6 +6,7 @@ from .database import Base, engine, SessionLocal
 from . import models
 from .routers import auth_router, face_router, liveness_router
 from .auth import hash_password
+from .core.config import settings
 
 # Optional psycopg (psycopg3) for local DB ensure
 try:
@@ -20,20 +21,11 @@ except Exception as exc:
     # Database may not be available during startup - this is handled in startup event
     print(f"[startup] Database table creation skipped: {exc}")
 
-# Enable CORS for frontend localhost
-app = FastAPI(title="FaceID Service", version="1.0.0")
+# Enable CORS for configured origins
+app = FastAPI(title=settings.PROJECT_NAME, version=settings.APP_VERSION)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5174",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,8 +47,8 @@ def _ensure_database_exists():
     db_user = os.getenv("POSTGRES_USER")
     db_pass = os.getenv("POSTGRES_PASSWORD")
     db_name = os.getenv("POSTGRES_DB")
-    db_host = os.getenv("DB_HOST", "localhost")
-    db_port = int(os.getenv("DB_PORT", "5432"))
+    db_host = settings.DB_HOST
+    db_port = int(settings.DB_PORT)
     if not all([db_user, db_pass, db_name]):
         return
     try:
