@@ -9,6 +9,7 @@ from ..tenant_guard import tenant_context
 from ..face_engine_arcface import engine_arc
 from ..nn import upsert_embedding, search_top1
 import httpx, os
+import numpy as np
 from ..core.config import settings
 
 router = APIRouter(prefix="/face", tags=["face"])
