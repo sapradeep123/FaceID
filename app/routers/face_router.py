@@ -64,6 +64,9 @@ async def enroll_live(
     tenant = Depends(tenant_context),
     db: Session = Depends(get_db),
 ):
+    from ..core.config import settings
+    face_url = settings.FACE_ENGINE_URL
+    
     added = 0
     for f in files:
         by = await f.read()

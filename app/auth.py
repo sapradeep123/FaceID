@@ -27,3 +27,18 @@ def require_token(creds: HTTPAuthorizationCredentials = Depends(security)) -> st
         return payload["sub"]
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+def get_current_user(user_id: str = Depends(require_token)):
+    """Get current user from token - simplified version"""
+    from .database import SessionLocal
+    from . import models
+    from sqlalchemy import select
+    
+    db = SessionLocal()
+    try:
+        user = db.execute(select(models.User).where(models.User.id == int(user_id))).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    finally:
+        db.close()

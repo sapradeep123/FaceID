@@ -1,5 +1,4 @@
 import os
-import psycopg2
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -8,8 +7,18 @@ from . import models
 from .routers import auth_router, face_router, liveness_router
 from .auth import hash_password
 
+# Optional psycopg (psycopg3) for local DB ensure
+try:
+    import psycopg  # type: ignore
+except Exception:  # pragma: no cover
+    psycopg = None  # noqa: N816
+
 # Create tables (DDL is handled by migrations.sql; this is safe)
-models.Base.metadata.create_all(bind=engine)
+try:
+    models.Base.metadata.create_all(bind=engine)
+except Exception as exc:
+    # Database may not be available during startup - this is handled in startup event
+    print(f"[startup] Database table creation skipped: {exc}")
 
 # Enable CORS for frontend localhost
 app = FastAPI(title="FaceID Service", version="1.0.0")
@@ -41,6 +50,8 @@ def root():
 
 def _ensure_database_exists():
     """Create target database if it does not exist by connecting to 'postgres'."""
+    if psycopg is None:
+        return
     db_user = os.getenv("POSTGRES_USER")
     db_pass = os.getenv("POSTGRES_PASSWORD")
     db_name = os.getenv("POSTGRES_DB")
@@ -49,16 +60,14 @@ def _ensure_database_exists():
     if not all([db_user, db_pass, db_name]):
         return
     try:
-        conn = psycopg2.connect(dbname="postgres", user=db_user, password=db_pass, host=db_host, port=db_port)
-        conn.autocommit = True
-        cur = conn.cursor()
-        cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
-        exists = cur.fetchone() is not None
-        if not exists:
-            cur.execute(f"CREATE DATABASE {psycopg2.sql.Identifier(db_name).string}")
-        cur.close()
-        conn.close()
-    except Exception as exc:
+        dsn_root = f"host={db_host} port={db_port} dbname=postgres user={db_user} password={db_pass}"
+        with psycopg.connect(dsn_root, autocommit=True) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
+                exists = cur.fetchone() is not None
+                if not exists:
+                    cur.execute(f"CREATE DATABASE {db_name}")
+    except Exception as exc:  # pragma: no cover
         # Log but continue; may not have permissions
         print(f"[startup] ensure db exists skipped: {exc}")
 
@@ -74,18 +83,18 @@ def _run_migrations_if_needed():
                 sql_script = f.read()
             with engine.begin() as conn:
                 conn.exec_driver_sql(sql_script)
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover
         # Log but don't block app startup
         print(f"[startup] migrations skipped: {exc}")
 
 
 @app.on_event("startup")
 def seed_defaults():
-    _ensure_database_exists()
-    _run_migrations_if_needed()
     """Seed default branch and device if not present so tenant headers work out of the box."""
-    db = SessionLocal()
     try:
+        _ensure_database_exists()
+        _run_migrations_if_needed()
+        db = SessionLocal()
         # Ensure default branch exists
         res = db.execute(text("SELECT id FROM branches WHERE code=:c"), {"c": "main-branch"}).first()
         if not res:
@@ -128,5 +137,7 @@ def seed_defaults():
                     "bid": branch_id,
                 })
                 db.commit()
-    finally:
         db.close()
+    except Exception as exc:  # pragma: no cover
+        # Log but continue; database may not be available
+        print(f"[startup] seed defaults skipped: {exc}")
