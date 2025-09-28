@@ -95,6 +95,15 @@ const FaceEnrollmentModern: React.FC<FaceEnrollmentModernProps> = ({
       setCameraReady(false);
       setResult(null);
       
+      // Check if we're on HTTPS or localhost
+      const isSecure = window.location.protocol === 'https:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
+        throw new Error('Camera access requires HTTPS. Please access the application via HTTPS or use localhost for development.');
+      }
+      
       // Check if getUserMedia is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera not supported in this browser');
@@ -206,6 +215,8 @@ const FaceEnrollmentModern: React.FC<FaceEnrollmentModernProps> = ({
         errorMessage += 'No camera found on this device.';
       } else if (error.name === 'NotSupportedError') {
         errorMessage += 'Camera not supported in this browser.';
+      } else if (error.name === 'SecurityError' || error.message?.includes('getUserMedia')) {
+        errorMessage += 'Camera access requires HTTPS. Please access the application via HTTPS or use localhost for development.';
       } else if (error.name === 'OverconstrainedError') {
         errorMessage += 'Camera constraints not supported. Trying with basic settings...';
         // Try with basic constraints

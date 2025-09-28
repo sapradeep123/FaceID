@@ -2,6 +2,7 @@ import React from 'react';
 import { LogOut, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import { useBranding } from '../../lib/branding';
 
 interface TopNavbarProps {
   onLogout: () => void;
@@ -14,6 +15,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
   userName = "Admin",
   userEmail = "admin@example.com"
 }) => {
+  const { branding } = useBranding();
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -28,9 +30,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({
       <div className="flex items-center justify-between px-6 py-4">
         {/* Left side - App title */}
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold text-gray-900">
-            FaceID Dashboard
-          </h1>
+          <h1 className="text-xl font-semibold text-gray-900">{branding.appName} Dashboard</h1>
         </div>
 
         {/* Right side - User info and actions */}

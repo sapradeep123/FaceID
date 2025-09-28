@@ -36,6 +36,15 @@ const FaceVerification: React.FC = () => {
       setCameraLoading(true);
       setResult(null);
       
+      // Check if we're on HTTPS or localhost
+      const isSecure = window.location.protocol === 'https:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
+        throw new Error('Camera access requires HTTPS. Please access the application via HTTPS or use localhost for development.');
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: { ideal: 640 }, 

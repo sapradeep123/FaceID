@@ -33,23 +33,23 @@ class Settings(BaseSettings):
     DB_PORT: str = "5432"
     DB_NAME: str = "faceid"
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PASSWORD: str = "abcd"
     POSTGRES_DB: str = "faceid"
     
     # ===========================================
     # Security Configuration
     # ===========================================
-    SECRET_KEY: str = "your-super-secret-jwt-key-change-this-in-production"
+    SECRET_KEY: str = "3netra_faceid_super_secret_jwt_key_2024_production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
-    JWT_SECRET: str = "your-super-secret-jwt-key-change-this-in-production"
+    JWT_SECRET: str = "3netra_faceid_super_secret_jwt_key_2024_production"
     JWT_EXPIRE_MINUTES: int = 1440
-    INTERNAL_API_KEY: str = "your-internal-api-key-change-this"
+    INTERNAL_API_KEY: str = "3netra_faceid_internal_api_key_2024_production"
     
     # ===========================================
     # CORS Configuration
     # ===========================================
-    CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
+    CORS_ORIGINS: str = "https://3netra.in,https://www.3netra.in,http://3netra.in,http://www.3netra.in,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"
     
     # ===========================================
     # Face Engine Configuration

@@ -17,10 +17,12 @@ def _has_vector(db: Session) -> bool:
 
 def upsert_embedding(db: Session, user_id: int, branch_id: int, emb: np.ndarray):
     if _has_vector(db):
+        # Convert numpy array to PostgreSQL vector format
+        emb_str = '[' + ','.join(map(str, emb.astype(float))) + ']'
         db.execute(text("""
             INSERT INTO face_embeddings (user_id, branch_id, embedding)
-            VALUES (:uid, :bid, :emb)
-        """), {"uid": user_id, "bid": branch_id, "emb": list(map(float, emb))})
+            VALUES (:user_id, :branch_id, (:emb)::vector)
+        """), {"user_id": user_id, "branch_id": branch_id, "emb": emb_str})
     else:
         # Fallback table using BYTEA storage
         db.execute(text("""
@@ -41,13 +43,15 @@ def upsert_embedding(db: Session, user_id: int, branch_id: int, emb: np.ndarray)
 
 def search_top1(db: Session, emb: np.ndarray, branch_id: int):
     if _has_vector(db):
+        # Convert numpy array to PostgreSQL vector format
+        emb_str = '[' + ','.join(map(str, emb.astype(float))) + ']'
         row = db.execute(text("""
-            SELECT user_id, 1 - (embedding <=> :q) AS sim
+            SELECT user_id, 1 - (embedding <=> (:emb)::vector) AS sim
             FROM face_embeddings
-            WHERE branch_id = :bid
-            ORDER BY embedding <-> :q
+            WHERE branch_id = :branch_id
+            ORDER BY embedding <-> (:emb)::vector
             LIMIT 1
-        """), {"q": list(map(float, emb)), "bid": branch_id}).first()
+        """), {"emb": emb_str, "branch_id": branch_id}).first()
         if row:
             # Apply confidence boosting for better scores
             raw_sim = float(row[1])
@@ -110,13 +114,15 @@ def search_multiple(db: Session, emb: np.ndarray, branch_id: int, top_k: int = 3
     Search for multiple similar faces, useful for debugging and analysis.
     """
     if _has_vector(db):
+        # Convert numpy array to PostgreSQL vector format
+        emb_str = '[' + ','.join(map(str, emb.astype(float))) + ']'
         rows = db.execute(text("""
-            SELECT user_id, 1 - (embedding <=> :q) AS sim
+            SELECT user_id, 1 - (embedding <=> (:emb)::vector) AS sim
             FROM face_embeddings
-            WHERE branch_id = :bid
-            ORDER BY embedding <-> :q
+            WHERE branch_id = :branch_id
+            ORDER BY embedding <-> (:emb)::vector
             LIMIT :top_k
-        """), {"q": list(map(float, emb)), "bid": branch_id, "top_k": top_k}).fetchall()
+        """), {"emb": emb_str, "branch_id": branch_id, "top_k": top_k}).fetchall()
         return [(row[0], _boost_confidence_score(float(row[1]))) for row in rows]
     
     # Fallback implementation

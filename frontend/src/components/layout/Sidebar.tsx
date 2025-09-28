@@ -12,6 +12,7 @@ import {
   Image
 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { useBranding } from '../../lib/branding';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
@@ -70,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeSection,
   onSectionChange,
 }) => {
+  const { branding } = useBranding();
   return (
     <div className={cn(
       "bg-white border-r border-gray-200 transition-all duration-300 ease-in-out",
@@ -79,10 +81,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex items-center justify-between p-4 border-b border-gray-200">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">FI</span>
-            </div>
-            <span className="font-semibold text-gray-900">FaceID Admin</span>
+            {branding.logoUrl ? (
+              <img src={branding.logoUrl} alt="logo" className="w-8 h-8 rounded-lg object-cover" />
+            ) : (
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">{branding.logoText}</span>
+              </div>
+            )}
+            <span className="font-semibold text-gray-900">{branding.adminName}</span>
           </div>
         )}
         <Button

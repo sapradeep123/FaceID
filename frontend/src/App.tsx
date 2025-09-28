@@ -5,6 +5,7 @@ import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import AdminLayout from './components/layout/AdminLayout';
 import './App.css';
+import { useApplyBranding } from './lib/branding';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('access_token');
@@ -19,6 +20,8 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 function App() {
+  // Apply favicon and title globally across all routes (login, admin, dashboard)
+  useApplyBranding();
   return (
     <Router>
       <div className="App">

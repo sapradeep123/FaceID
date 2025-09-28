@@ -7,7 +7,7 @@ const LivenessDetection: React.FC = () => {
   const [frameA, setFrameA] = useState<File | null>(null);
   const [frameB, setFrameB] = useState<File | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [capturingFrame, setCapturingFrame] = useState<'A' | 'B' | null>(null);
+  // const [capturingFrame, setCapturingFrame] = useState<'A' | 'B' | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; user_id?: number; confidence?: number; user_details?: any } | null>(null);
   const [cameraLoading, setCameraLoading] = useState(false);
@@ -22,7 +22,7 @@ const LivenessDetection: React.FC = () => {
   useEffect(() => {
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       }
     };
   }, []);
@@ -38,6 +38,15 @@ const LivenessDetection: React.FC = () => {
     try {
       setCameraLoading(true);
       setResult(null);
+      
+      // Check if we're on HTTPS or localhost
+      const isSecure = window.location.protocol === 'https:' || 
+                      window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
+        throw new Error('Camera access requires HTTPS. Please access the application via HTTPS or use localhost for development.');
+      }
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
@@ -64,7 +73,7 @@ const LivenessDetection: React.FC = () => {
           setIsCapturing(true);
         };
         
-        videoRef.current.onerror = (e) => {
+        videoRef.current.onerror = (e: string | Event) => {
           console.error('Video error:', e);
           setCameraLoading(false);
           setResult({ success: false, message: 'Camera stream error. Please try again.' });
@@ -89,11 +98,11 @@ const LivenessDetection: React.FC = () => {
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
       streamRef.current = null;
     }
     setIsCapturing(false);
-    setCapturingFrame(null);
+    // setCapturingFrame(null);
     setCameraLoading(false);
     setCurrentStep('idle');
     setCountdown(null);
@@ -104,7 +113,7 @@ const LivenessDetection: React.FC = () => {
     setCurrentStep(frameType === 'A' ? 'frameA' : 'frameB');
     
     const timer = setInterval(() => {
-      setCountdown((prev) => {
+      setCountdown((prev: number | null) => {
         if (prev === null || prev <= 1) {
           clearInterval(timer);
           callback();
@@ -126,7 +135,7 @@ const LivenessDetection: React.FC = () => {
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
         
-        canvas.toBlob((blob) => {
+        canvas.toBlob((blob: Blob | null) => {
           if (blob) {
             const file = new File([blob], `frame_${frameType.toLowerCase()}_${Date.now()}.jpg`, { type: 'image/jpeg' });
             if (frameType === 'A') {
@@ -157,7 +166,7 @@ const LivenessDetection: React.FC = () => {
         'X-Org-Id': 'default',
         'X-Branch-Code': 'main-branch',
         'X-Device-Code': 'web-client',
-        'X-API-Key': 'change_me'
+        'X-API-Key': '3netra_faceid_internal_api_key_2024_production'
       };
 
       const response = await livenessAPI.getChallenge(headers);
@@ -188,7 +197,7 @@ const LivenessDetection: React.FC = () => {
         'X-Org-Id': 'default',
         'X-Branch-Code': 'main-branch',
         'X-Device-Code': 'web-client',
-        'X-API-Key': 'change_me'
+        'X-API-Key': '3netra_faceid_internal_api_key_2024_production'
       };
 
       const response = await livenessAPI.verify(

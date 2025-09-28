@@ -13,9 +13,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./migrations.sql:/docker-entrypoint-initdb.d/000_migrations.sql:ro
-    command: ["postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=200"]
+    command: [ "postgres", "-c", "shared_buffers=256MB", "-c", "max_connections=200" ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-faceid}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-faceid}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,23 +38,23 @@ services:
       - FACE_ENGINE_URL=${FACE_ENGINE_URL:-http://127.0.0.1:9000}
       - WEB_CONCURRENCY=${WEB_CONCURRENCY:-4}
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "${HOST_API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./:/app
     command: >
-      bash -lc "gunicorn app.main:app -k uvicorn.workers.UvicornWorker
-      -w ${WEB_CONCURRENCY:-4} -b ${API_HOST:-0.0.0.0}:${API_PORT:-8000} --timeout 60"
+      bash -lc "gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-4} -b ${API_HOST:-0.0.0.0}:${API_PORT:-8000} --timeout 60"
 
   frontend:
-    build: ./frontend
+    build: 
+      context: ./frontend
+      args:
+        - REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL:-http://localhost:${API_PORT:-8000}}
     container_name: faceid_frontend
-    environment:
-      - REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL:-http://localhost:${API_PORT:-8000}}
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_HOST_PORT:-3000}:80"
     depends_on:
       - api
 
