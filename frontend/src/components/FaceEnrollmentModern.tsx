@@ -323,9 +323,9 @@ const FaceEnrollmentModern: React.FC<FaceEnrollmentModernProps> = ({
 
       let response;
       if (enrollmentType === 'passport') {
-        response = await tempApi.enrollPassport(selectedFiles[0], headers);
+        response = await tempApi.enrollPassport(selectedFiles[0], headers, selectedUser.id);
       } else {
-        response = await tempApi.enrollLive(selectedFiles, headers);
+        response = await tempApi.enrollLive(selectedFiles, headers, selectedUser.id);
       }
 
       setResult({ 

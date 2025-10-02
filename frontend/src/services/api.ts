@@ -23,8 +23,9 @@ api.interceptors.response.use(
     const headers = (error.config?.headers || {}) as Record<string, unknown>;
     const detail = error.response?.data?.detail;
 
-    // Do NOT force logout for internal service endpoints using API key
-    const isInternalService = url.startsWith('/live/') || url.startsWith('/face/') || 'X-API-Key' in headers;
+    // Do NOT force logout for internal service endpoints using API key.
+    // Note: face enrollment/verification require user auth; treat them as user endpoints.
+    const isInternalService = url.startsWith('/live/') || 'X-API-Key' in headers;
 
     if (status === 401 && !isInternalService) {
       const detailText = typeof detail === 'string' ? detail : '';
@@ -121,18 +122,24 @@ export const authAPI = {
 };
 
 export const faceAPI = {
-  enrollPassport: (file: File, headers: Record<string, string>) => {
+  enrollPassport: (file: File, headers: Record<string, string>, targetUserId?: number) => {
     const formData = new FormData();
     formData.append('file', file);
+    if (typeof targetUserId === 'number') {
+      formData.append('target_user_id', String(targetUserId));
+    }
     return api.post<FaceEnrollmentResponse>('/face/enroll_passport', formData, {
       headers: {
         ...headers,
       },
     });
   },
-  enrollLive: (files: File[], headers: Record<string, string>) => {
+  enrollLive: (files: File[], headers: Record<string, string>, targetUserId?: number) => {
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
+    if (typeof targetUserId === 'number') {
+      formData.append('target_user_id', String(targetUserId));
+    }
     return api.post<FaceEnrollmentResponse>('/face/enroll_live', formData, {
       headers: {
         ...headers,

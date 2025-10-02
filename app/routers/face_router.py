@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Response
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Response, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
@@ -26,6 +26,7 @@ def get_db():
 @router.post("/enroll_passport")
 async def enroll_passport(
     file: UploadFile = File(...),
+    target_user_id: int | None = Form(None),
     user_id: int = Depends(require_token),
     tenant = Depends(tenant_context),
     db: Session = Depends(get_db),
@@ -49,18 +50,21 @@ async def enroll_passport(
     if emb is None:
         raise HTTPException(400, "No face detected in passport photo")
 
-    # Ensure user belongs to branch (set if empty)
-    u = db.execute(select(models.User).where(models.User.id == int(user_id))).scalar_one_or_none()
+    # Determine target user (admin enrolling on behalf of another user)
+    target_id = int(target_user_id) if target_user_id is not None else int(user_id)
+
+    # Ensure target user exists and belongs to branch (set if empty)
+    u = db.execute(select(models.User).where(models.User.id == target_id)).scalar_one_or_none()
     if not u:
         raise HTTPException(404, "User not found")
     if u.branch_id is None:
-        db.execute(text("UPDATE users SET branch_id=:b WHERE id=:u"), {"b": tenant["branch_id"], "u": int(user_id)})
+        db.execute(text("UPDATE users SET branch_id=:b WHERE id=:u"), {"b": tenant["branch_id"], "u": target_id})
         db.commit()
 
     # Save the image to database
     face_image = models.FaceImage(
-        user_id=int(user_id),
-        filename=file.filename or f"passport_{user_id}_{file.size}.jpg",
+        user_id=target_id,
+        filename=file.filename or f"passport_{target_id}_{file.size}.jpg",
         image_bytes=by
     )
     db.add(face_image)
@@ -72,6 +76,7 @@ async def enroll_passport(
 @router.post("/enroll_live")
 async def enroll_live(
     files: List[UploadFile] = File(...),
+    target_user_id: int | None = Form(None),
     user_id: int = Depends(require_token),
     tenant = Depends(tenant_context),
     db: Session = Depends(get_db),
@@ -79,6 +84,14 @@ async def enroll_live(
     from ..core.config import settings
     face_url = settings.FACE_ENGINE_URL
     
+    # Determine target user id to assign images/embeddings
+    target_id = int(target_user_id) if target_user_id is not None else int(user_id)
+
+    # Validate target user exists
+    u = db.execute(select(models.User).where(models.User.id == target_id)).scalar_one_or_none()
+    if not u:
+        raise HTTPException(404, "User not found")
+
     added = 0
     image_ids = []
     for f in files:
@@ -101,14 +114,14 @@ async def enroll_live(
         
         # Save the image to database
         face_image = models.FaceImage(
-            user_id=int(user_id),
-            filename=f.filename or f"live_{user_id}_{f.size}_{added}.jpg",
+            user_id=target_id,
+            filename=f.filename or f"live_{target_id}_{f.size}_{added}.jpg",
             image_bytes=by
         )
         db.add(face_image)
         db.flush()  # Get the ID without committing
         
-        upsert_embedding(db, int(user_id), tenant["branch_id"], emb)
+        upsert_embedding(db, target_id, tenant["branch_id"], emb)
         image_ids.append(face_image.id)
         added += 1
     
